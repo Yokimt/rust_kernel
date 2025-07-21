@@ -3,7 +3,10 @@
 
 mod sukisu;
 
-use std::os::raw::{c_char, c_int, c_long, c_void};
+use std::{
+    env::consts,
+    os::raw::{c_char, c_int, c_long, c_void},
+};
 use syscalls::{syscall, Sysno};
 #[repr(C)]
 pub struct kpm_read {
@@ -66,8 +69,7 @@ impl KernelDriver {
         self.init(self.cmd_read, self.kread.key);
         0
     }
-    pub fn init(&mut self,cmd:u16,key:u16)
-    {
+    pub fn init(&mut self, cmd: u16, key: u16) {
         self.cmd_read = cmd;
         self.cmd_write = cmd + 1;
         self.cmd_mod = cmd + 2;
@@ -75,16 +77,16 @@ impl KernelDriver {
         self.kread.key = key;
         self.kmod.key = key;
     }
-    pub fn readmem(&mut self,addr:u64,buffer: *mut c_void,size:c_int)->i32
-    {
+    pub fn read_mem(&mut self, addr: u64, buffer: *mut c_void, size: c_int) -> i32 {
         self.kread.addr = addr;
         self.kread.buffer = buffer;
         self.kread.size = size;
         let result = unsafe {
-         syscall!(
-            Sysno::ioctl,
-            self.cmd_read as c_int,
-            &self.kread as *const kpm_read as usize
+            syscall!(
+                Sysno::ioctl,
+                -114 as c_int,
+                self.cmd_read as c_int,
+                &self.kread as *const kpm_read
             )
         };
         match result {
@@ -100,14 +102,37 @@ impl KernelDriver {
             }
         }
     }
-    pub fn read<T>(&mut self,addr:u64)->T
-    {
+    pub fn read<T>(&mut self, addr: u64) -> T {
         self.kread.addr = addr;
         self.kread.buffer = vec![0u8; std::mem::size_of::<T>()].as_mut_ptr() as *mut c_void;
         self.kread.size = std::mem::size_of::<T>() as c_int;
-        self.readmem(self.kread.addr, self.kread.buffer, self.kread.size);
-        unsafe {
-            std::ptr::read(self.kread.buffer as *const T)
+        self.read_mem(self.kread.addr, self.kread.buffer, self.kread.size);
+        unsafe { std::ptr::read(self.kread.buffer as *const T) }
+    }
+    pub fn write_mem(&mut self, addr: u64, buffer: *mut c_void, size: c_int) {
+        self.kread.addr = addr;
+        self.kread.buffer = buffer;
+        self.kread.size = size;
+        let result = unsafe {
+            syscall!(
+                Sysno::ioctl,
+                -114 as c_int,
+                self.cmd_write as c_int,
+                &self.kread as *const kpm_read
+            )
+        };
+        match result {
+            Ok(ret) => {
+                if ret > 0 {
+                    println!("write_mem Success");
+                }
+            }
+            Err(err) => {
+                eprintln!("write_mem failed: {}", err);
+            }
         }
     }
+    pub fn write<T>() {}
+    pub fn get_mod_base() {}
+    pub fn get_pid() {}
 }
