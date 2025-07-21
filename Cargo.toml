@@ -1,0 +1,7 @@
+[package]
+name = "rust_kernel"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+syscalls = { version = "0.6.18", features = ["aarch64"] }
