@@ -132,7 +132,14 @@ impl KernelDriver {
             }
         }
     }
-    pub fn write<T>() {}
-    pub fn get_mod_base() {}
+    pub fn write<T>(&mut self,addr:u64,value:T) {
+        self.kread.addr = addr;
+        self.kread.buffer = &value as *const T as *mut c_void;
+        self.kread.size = std::mem::size_of::<T>() as c_int;
+        self.write_mem(self.kread.addr, self.kread.buffer, self.kread.size);
+    }
+    pub fn get_mod_base() {
+        
+    }
     pub fn get_pid() {}
 }
