@@ -4,7 +4,7 @@ use std::ffi::CString;
 
 const  KERNEL_SU_OPTION: c_long = 0xDEADBEEF;
 
-const KSU_OPTIONS: c_int = 0x00000001;
+const KSU_OPTIONS: c_long = 0xdeadbeef;
 // KPM控制代码
 const CMD_KPM_CONTROL:c_int =  28;
 

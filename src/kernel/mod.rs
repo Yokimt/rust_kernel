@@ -66,6 +66,7 @@ impl KernelDriver {
         }
         self.kread.key = (ret & 0xFFFF) as u16;
         self.cmd_read = ((ret >> 16) & 0xFFFF) as u16;
+        print!("cmd_ctl: kread.key = {}, cmd_read = {}", self.kread.key, self.cmd_read);
         self.init(self.cmd_read, self.kread.key);
         0
     }
