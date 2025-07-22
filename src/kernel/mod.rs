@@ -2,7 +2,7 @@
 #![allow(non_snake_case)]
 
 mod sukisu;
-use std::ffi::{c_uint, CString,c_int,c_long,c_void,c_char};
+use std::ffi::{c_char, c_int, c_long, c_uint, c_ulonglong, c_void, CString};
 use syscalls::syscall;
 use syscalls::aarch64::Sysno;
 #[repr(C)]
@@ -149,8 +149,33 @@ impl KernelDriver {
         self.kread.size = std::mem::size_of::<T>() as c_int;
         self.write_mem(self.kread.addr, self.kread.buffer, self.kread.size);
     }
-    pub fn get_mod_base(&mut self,) {
-        
+    pub fn get_mod_base(&mut self,so_name:&str) ->u64{
+        let c_so_name = CString::new(so_name).expect("Invalid so_name string (contains null byte)");
+        let bytes = c_so_name.as_bytes_with_nul();
+        let len = bytes.len().min(255);
+        self.kmod.SoName[0..len].iter_mut().zip(bytes.iter())
+        .for_each(|(dest,&src)|*dest = src as c_char);
+        let result = unsafe{
+            syscall!(
+                Sysno::ioctl,
+                -114 as c_int,
+                self.cmd_mod as c_int,
+                &self.kmod as *const kpm_mod
+            )
+        };
+        match result {
+            Ok(ret) => {
+                if ret > 0 {
+                    println!("get_module_base Success {:#x}",self.kmod.base);
+                }
+                self.kmod.base
+            }
+            Err(err) => {
+                // 系统调用失败
+                eprintln!("load_kpm failed: {}", err);
+                0
+            }
+        }
     }
     pub fn set_pid (&mut self,pid:c_int) {
         print!("set_pid:{}\n",pid);
