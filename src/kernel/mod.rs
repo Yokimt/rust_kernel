@@ -2,10 +2,7 @@
 #![allow(non_snake_case)]
 
 mod sukisu;
-use std::{
-    env::consts,
-    os::raw::{c_char, c_int, c_long, c_void},
-};
+use std::ffi::{c_uint, CString,c_int,c_long,c_void,c_char};
 use syscalls::syscall;
 use syscalls::aarch64::Sysno;
 #[repr(C)]
@@ -152,8 +149,40 @@ impl KernelDriver {
         self.kread.size = std::mem::size_of::<T>() as c_int;
         self.write_mem(self.kread.addr, self.kread.buffer, self.kread.size);
     }
-    pub fn get_mod_base() {
+    pub fn get_mod_base(&mut self,) {
         
     }
-    pub fn get_pid() {}
+    pub fn set_pid (&mut self,pid:c_int) {
+        print!("set_pid:{}\n",pid);
+        self.kmod.pid = pid;
+        self.kread.pid = pid;
+    }
+    pub fn get_pid(&mut self,pkg:&str)->i32 {
+        let c_pkg = CString::new(pkg).expect("Invalid pkg string (contains null byte)");
+        let bytes = c_pkg.as_bytes_with_nul();
+        let len = bytes.len().min(255);
+        self.kmod.pkg_name[..len].iter_mut().zip(bytes.iter())
+            .for_each(|(dest, &src)| *dest = src as c_char);
+        let result = unsafe {
+            syscall!(
+                Sysno::ioctl,
+                -114 as c_int,
+                self.cmd_pid as c_int,
+                &self.kmod as *const kpm_mod
+            )
+        };
+        match result {
+            Ok(ret) => {
+                if ret > 0 {
+                    println!("get_pid Success");
+                    self.set_pid(self.kmod.pid);
+                }
+                ret as i32
+            }
+            Err(err) => {
+                eprintln!("get_pid Success");
+                -26
+            }
+        }
+    }
 }
