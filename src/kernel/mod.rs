@@ -2,12 +2,12 @@
 #![allow(non_snake_case)]
 
 mod sukisu;
-
 use std::{
     env::consts,
     os::raw::{c_char, c_int, c_long, c_void},
 };
-use syscalls::{syscall, Sysno};
+use syscalls::syscall;
+use syscalls::aarch64::Sysno;
 #[repr(C)]
 pub struct kpm_read {
     pub key: u16,
@@ -60,13 +60,26 @@ impl KernelDriver {
     pub fn cmd_ctl(&mut self) -> i32 {
         let kpm_name = "kernel-mem";
         let ret = sukisu::kpm_control(kpm_name, "get_key");
-
-        if ret < 0 {
-            return ret;
+        match ret {
+            -1 =>{
+                print!("初始化失败\n");
+                return -1;
+            }
+            -2 =>{
+                print!("设备到期\n");
+                return -2;
+            }
+            -3 =>{
+                print!("未注册设备\n");
+                return -3;
+            }
+            _ =>{
+                print!("初始化成功\n");
+            }
         }
         self.kread.key = (ret & 0xFFFF) as u16;
         self.cmd_read = ((ret >> 16) & 0xFFFF) as u16;
-        print!("cmd_ctl: kread.key = {}, cmd_read = {}", self.kread.key, self.cmd_read);
+        println!("key:{},cmd:{}\n",self.kread.key,self.cmd_read);
         self.init(self.cmd_read, self.kread.key);
         0
     }

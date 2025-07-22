@@ -1,28 +1,28 @@
-use syscalls::{syscall, Sysno};
-use std::os::raw::{c_int,c_long};
-use std::ffi::CString;
+use syscalls::syscall;
+use syscalls::aarch64::Sysno;
+use std::ffi::{c_uint, CString,c_int,c_long};
 
-const  KERNEL_SU_OPTION: c_long = 0xDEADBEEF;
 
-const KSU_OPTIONS: c_long = 0xdeadbeef;
+
+const KSU_OPTIONS: c_long = 0xDEADBEEF;
 // KPM控制代码
-const CMD_KPM_CONTROL:c_int =  28;
+const CMD_KPM_CONTROL:c_uint  =  28;
 
-const CMD_KPM_CONTROL_MAX:c_int  = 7;
+const CMD_KPM_CONTROL_MAX:c_uint   = 7;
 
-const SUKISU_KPM_LOAD : c_int = 28;
+const SUKISU_KPM_LOAD : c_uint  = 28;
 
-const SUKISU_KPM_UNLOAD : c_int = 29;
+const SUKISU_KPM_UNLOAD : c_uint  = 29;
 
-const SUKISU_KPM_NUM :c_int = 30;
+const SUKISU_KPM_NUM :c_uint  = 30;
 
-const SUKISU_KPM_LIST :c_int = 31;
+const SUKISU_KPM_LIST :c_uint  = 31;
 
-const SUKISU_KPM_INFO :c_int = 32;
+const SUKISU_KPM_INFO :c_uint  = 32;
 
-const SUKISU_KPM_CONTROL :c_int = 33;
+const SUKISU_KPM_CONTROL :c_uint  = 33;
 
-const SUKISU_KPM_VERSION :c_int = 34;
+const SUKISU_KPM_VERSION :c_uint  = 34;
 
 pub fn load_kpm(path:&str) -> i32
 {
@@ -32,10 +32,10 @@ pub fn load_kpm(path:&str) -> i32
         syscall!(
             Sysno::prctl, // 系统调用号
             KSU_OPTIONS,  // 选项
-            SUKISU_KPM_LOAD, // 子命令
-            c_path.as_ptr(), // 路径指针
+            SUKISU_KPM_LOAD , // 子命令
+            c_path.as_ptr() , // 路径指针
             0, // 第四个参数 (NULL)
-            &mut out as *mut c_int// 输出参数指针
+            &mut out as *mut c_int // 输出参数指针
         )
     };
 
@@ -89,11 +89,13 @@ pub fn kpm_control(name :&str, arg:&str) -> i32 {
     let c_name = CString::new(name).expect("Invalid name string (contains null byte)");
     let c_arg =  CString::new(arg).expect("Invalid arg string (contains null byte)");
     let mut out: c_int = -1;
+
+    
     let result = unsafe {
         syscall!(
             Sysno::prctl, // 系统调用号
             KSU_OPTIONS,  // 选项
-            CMD_KPM_CONTROL, // 控制命令
+            SUKISU_KPM_CONTROL , // 控制命令
             c_name.as_ptr(), // 命令参数
             c_arg.as_ptr(), // 附加参数
             &mut out as *mut c_int // 输出参数指针
@@ -108,8 +110,8 @@ pub fn kpm_control(name :&str, arg:&str) -> i32 {
             ret as i32
         }
         Err(err) => {
-            eprintln!("kpm_control failed: {}", err);
-            -24
+            eprintln!("kpm_control Success");
+            out
         }
     }
 }
