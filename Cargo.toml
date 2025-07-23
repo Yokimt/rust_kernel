@@ -1,7 +1,22 @@
 [package]
 name = "rust_kernel"
 version = "0.1.0"
-edition = "2024"
+edition = "2021"
 
 [dependencies]
 syscalls = { version = "0.6.18", features = ["aarch64"] }
+log = "0.4"
+simple_logger = "5.0"
+ash = { version = "0.38", default-features = false, features = ["debug","linked"] }
+ultraviolet = "0.9"
+gpu-allocator = { version = "0.27", default-features = false, features = ["vulkan"] }
+
+
+imgui = { version = "^0.12", features = ["tables-api"] }
+
+ash-window = "0.13"
+image = "0.25"
+imgui-rs-vulkan-renderer = { version = "1.16.0" ,features = ["gpu-allocator"]}
+android_native_window = "=0.5.0"
+raw-window-handle = "0.6.2"
+mint = "0.5.6" 

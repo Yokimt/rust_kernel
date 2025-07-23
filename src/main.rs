@@ -1,4 +1,6 @@
 use rust_kernel::kernel::KernelDriver;
+use rust_kernel::menu;
+
 fn main() {
     let mut driver = KernelDriver::new();
     let ret = driver.cmd_ctl();
@@ -12,4 +14,7 @@ fn main() {
     driver.write::<i32>(base+12, 1999);
     tmp = driver.read::<i32>(base+12);
     print!("tmp {}\n", tmp);
+    if let Err(e) = menu::init_menu() {
+        eprintln!("Error initializing menu: {}", e);
+    }
 }
