@@ -22,7 +22,6 @@ use {
 };
 
 use android_native_window::{attach_window, event::event_loop::EventLoop, Window};
-
 pub trait App {
     fn destroy(&mut self, context: &VulkanContext);
 }
@@ -141,7 +140,6 @@ impl<A: App> System<A> {
                 }),
             },
         ]);
-        
 
         attach_window(imgui.io_mut(), &window);
 
@@ -248,7 +246,6 @@ impl<A: App> System<A> {
             }
 
             let draw_data = imgui.render();
-
             unsafe {
                 vulkan_context
                     .device
@@ -332,6 +329,21 @@ impl<A: App> System<A> {
                 Err(error) => panic!("Failed to present queue. Cause: {}", error),
                 _ => {}
             }
+            imgui.io_mut().font_global_scale = 0.8;
+            // let mut fonts = imgui.fonts();
+
+            // // 添加主要字体
+            // let main_font: FontId = fonts.add_font(&[FontSource::TtfData {
+            //     data: font::MY_FONT_DATA,
+            //     size_pixels: 16.0,
+            //     config: Some(FontConfig {
+            //         rasterizer_multiply: 1.2,
+            //         oversample_h: 5,
+            //         oversample_v: 5,
+            //         ..FontConfig::default()
+            //     }),
+            // }]);
+            // let _ =fonts.build_rgba32_texture();
         });
 
         Ok(())
@@ -523,7 +535,7 @@ fn create_window(title: &str) -> Result<(Window, EventLoop), Box<dyn Error>> {
     log::debug!("Creating window and event loop");
     let mut event_loop = EventLoop::default();
 
-    let window = Window::new(title,&mut event_loop);
+    let window = Window::new(title, &mut event_loop);
 
     Ok((window, event_loop))
 }
