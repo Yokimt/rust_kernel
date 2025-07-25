@@ -20,7 +20,7 @@ use {
     gpu_allocator::vulkan::{Allocator, AllocatorCreateDesc},
     std::sync::{Arc, Mutex},
 };
-
+use super::menu::font;
 use android_native_window::{attach_window, event::event_loop::EventLoop, Window};
 pub trait App {
     fn destroy(&mut self, context: &VulkanContext);
@@ -46,11 +46,10 @@ pub struct System<A: App + 'static> {
 }
 
 impl<A: App> System<A> {
-    pub fn new(title: &str) -> Result<Self, Box<dyn Error>> {
+    pub fn new(title: &str,screenshot:&bool) -> Result<Self, Box<dyn Error>> {
         log::info!("Create application");
         // Setup window
-        let (window, event_loop) = create_window(title)?;
-
+        let (window, event_loop) = create_window(title,*screenshot)?;
         let vulkan_context = VulkanContext::new(&window, title)?;
 
         let command_buffer = {
@@ -119,28 +118,24 @@ impl<A: App> System<A> {
         let mut buf: Vec<u8> = Vec::new();
         let _ = f.read_to_end(&mut buf);
 
-        let font_size = 39.0;
+        let font_size = 25.0;
+        let framebuffer_scale =  imgui.io_mut().display_framebuffer_scale[0];
         imgui.fonts().add_font(&[
             FontSource::TtfData {
-                data: &buf,
-                size_pixels: font_size,
+                data: &font::MY_FONT_DATA,
+                size_pixels:font_size *framebuffer_scale,
                 config: Some(FontConfig {
-                    rasterizer_multiply: 1.75,
+                    rasterizer_multiply: 1.6,
+                    oversample_h: 4,
+                    oversample_v: 4,
+                    pixel_snap_h: true,
                     glyph_ranges: FontGlyphRanges::chinese_full(),
                     ..FontConfig::default()
                 }),
             },
-            FontSource::TtfData {
-                data: &buf,
-                size_pixels: font_size,
-                config: Some(FontConfig {
-                    rasterizer_multiply: 1.75,
-                    glyph_ranges: FontGlyphRanges::japanese(),
-                    ..FontConfig::default()
-                }),
-            },
         ]);
-
+        imgui.io_mut().font_allow_user_scaling = true;
+        imgui.io_mut().font_global_scale = 1.0/framebuffer_scale;
         attach_window(imgui.io_mut(), &window);
 
         let renderer = {
@@ -212,7 +207,7 @@ impl<A: App> System<A> {
         } = self;
 
         let mut dirty_swapchain = false;
-
+        
         // Main loop
         event_loop.run(move |event, delta_ime, run| {
             //handle mouse event and delatime
@@ -329,21 +324,6 @@ impl<A: App> System<A> {
                 Err(error) => panic!("Failed to present queue. Cause: {}", error),
                 _ => {}
             }
-            imgui.io_mut().font_global_scale = 0.8;
-            // let mut fonts = imgui.fonts();
-
-            // // 添加主要字体
-            // let main_font: FontId = fonts.add_font(&[FontSource::TtfData {
-            //     data: font::MY_FONT_DATA,
-            //     size_pixels: 16.0,
-            //     config: Some(FontConfig {
-            //         rasterizer_multiply: 1.2,
-            //         oversample_h: 5,
-            //         oversample_v: 5,
-            //         ..FontConfig::default()
-            //     }),
-            // }]);
-            // let _ =fonts.build_rgba32_texture();
         });
 
         Ok(())
@@ -531,12 +511,10 @@ impl Swapchain {
     }
 }
 
-fn create_window(title: &str) -> Result<(Window, EventLoop), Box<dyn Error>> {
+fn create_window(title: &str,screenshot:bool) -> Result<(Window, EventLoop), Box<dyn Error>> {
     log::debug!("Creating window and event loop");
     let mut event_loop = EventLoop::default();
-
-    let window = Window::new(title, &mut event_loop);
-
+    let window = Window::new(title, &mut event_loop,screenshot);
     Ok((window, event_loop))
 }
 

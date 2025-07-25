@@ -1,7 +1,9 @@
 use crate::common::*;
 use crate::imgui_rs_fix::ImguiFixedFunctions;
 use imgui::*;
-// use std::time::{SystemTime, UNIX_EPOCH};
+pub mod font;
+use std::cell::RefCell;
+use std::rc::Rc;
 // ======================
 // 状态管理结构体
 // ======================
@@ -58,114 +60,89 @@ impl Vector3 {
         Vector3 { X: x, Y: y, Z: z }
     }
 }
-fn setup_colors(ui: &Ui) {
-    // 窗口背景色
-    ui.push_style_color(
-        StyleColor::WindowBg,
-        [20.0 / 255.0, 23.0 / 255.0, 25.0 / 255.0, 1.0],
-    );
-    // 子窗口背景色
-    ui.push_style_color(
-        StyleColor::ChildBg,
-        [24.0 / 255.0, 28.0 / 255.0, 30.0 / 255.0, 1.0],
-    );
-    // 文本颜色
-    ui.push_style_color(StyleColor::Text, [1.0, 1.0, 1.0, 1.0]);
-
-    // 头部颜色
-    ui.push_style_color(
-        StyleColor::Header,
-        [30.0 / 255.0, 138.0 / 255.0, 200.0 / 255.0, 1.0],
-    );
-    ui.push_style_color(
-        StyleColor::HeaderHovered,
-        [31.0 / 255.0, 110.0 / 255.0, 171.0 / 255.0, 1.0],
-    );
-    ui.push_style_color(
-        StyleColor::HeaderActive,
-        [30.0 / 255.0, 116.0 / 255.0, 215.0 / 255.0, 1.0],
-    );
-
-    // 按钮颜色
-    ui.push_style_color(
-        StyleColor::Button,
-        [25.0 / 255.0, 145.0 / 255.0, 215.0 / 255.0, 1.0],
-    );
-    ui.push_style_color(
-        StyleColor::ButtonHovered,
-        [31.0 / 255.0, 110.0 / 255.0, 171.0 / 255.0, 1.0],
-    );
-    ui.push_style_color(
-        StyleColor::ButtonActive,
-        [100.0 / 255.0, 161.0 / 255.0, 222.0 / 255.0, 1.0],
-    );
-
-    // 复选框颜色
-    ui.push_style_color(StyleColor::CheckMark, [0.0, 0.0, 0.0, 1.0]);
-    ui.push_style_color(
-        StyleColor::FrameBg,
-        [25.0 / 255.0, 158.0 / 255.0, 215.0 / 255.0, 200.0 / 255.0],
-    );
-    ui.push_style_color(
-        StyleColor::FrameBgActive,
-        [25.0 / 255.0, 164.0 / 255.0, 215.0 / 255.0, 1.0],
-    );
-    ui.push_style_color(
-        StyleColor::FrameBgHovered,
-        [20.0 / 255.0, 212.0 / 255.0, 250.0 / 255.0, 1.0],
-    );
-
-    // 边框颜色
-    ui.push_style_color(StyleColor::Border, [0.0, 0.0, 0.0, 1.0]);
-
-    // 设置圆角
-    ui.push_style_var(StyleVar::WindowRounding(10.0));
-    ui.push_style_var(StyleVar::FrameRounding(5.0));
-    ui.push_style_var(StyleVar::ScrollbarRounding(5.0));
-    ui.push_style_var(StyleVar::GrabRounding(2.3));
-    ui.push_style_var(StyleVar::TabRounding(2.3));
-    ui.push_style_var(StyleVar::ChildRounding(5.0));
-    ui.push_style_var(StyleVar::WindowBorderSize((2.0)));
-
-    ui.push_style_var(StyleVar::GrabMinSize(30.0));
-}
 
 // ======================
 // UI 渲染函数
 // ======================
+use android_native_window::Window as NativeWindow;
 
 fn layout_tick_ui(ui: &Ui, state: &mut AppState) {
     // 处理窗口大小和位置重置逻辑
-    if state.permeate_record_ini {
-        state.permeate_record_ini = false;
-        // 实际项目中这里需要调用原生窗口API
-    }
 
     // 绘制主界面
     if state.show_menu {
         // 设置窗口大小约束
+        state.permeate_record_ini = false;
+        let mut size = [800.0, 400.0];
+        // 窗口背景色
+        let windowbg = ui.push_style_color(
+            StyleColor::WindowBg,
+            [20.0 / 255.0, 23.0 / 255.0, 25.0 / 255.0, 1.0],
+        );
+        // 子窗口背景色
+        let childbg = ui.push_style_color(
+            StyleColor::ChildBg,
+            [24.0 / 255.0, 28.0 / 255.0, 30.0 / 255.0, 1.0],
+        );
+        // 文本颜色
+        let text = ui.push_style_color(StyleColor::Text, [1.0, 1.0, 1.0, 1.0]);
 
-        let min_size = [640.0, 300.0];
-        let mut size = ui.window_size();
-        if size[0] < min_size[0] {
-            size[0] = min_size[0];
-        }
-        if size[1] < min_size[1] {
-            size[1] = min_size[1];
-        }
+        // 头部颜色
+        let header = ui.push_style_color(
+            StyleColor::Header,
+            [30.0 / 255.0, 138.0 / 255.0, 200.0 / 255.0, 1.0],
+        );
+        let headerhover = ui.push_style_color(
+            StyleColor::HeaderHovered,
+            [31.0 / 255.0, 110.0 / 255.0, 171.0 / 255.0, 1.0],
+        );
+        let headeractive = ui.push_style_color(
+            StyleColor::HeaderActive,
+            [30.0 / 255.0, 116.0 / 255.0, 215.0 / 255.0, 1.0],
+        );
 
+        // 按钮颜色
+        let button = ui.push_style_color(
+            StyleColor::Button,
+            [25.0 / 255.0, 145.0 / 255.0, 215.0 / 255.0, 1.0],
+        );
+        let buttonhover = ui.push_style_color(
+            StyleColor::ButtonHovered,
+            [31.0 / 255.0, 110.0 / 255.0, 171.0 / 255.0, 1.0],
+        );
+        let buttonactive = ui.push_style_color(
+            StyleColor::ButtonActive,
+            [100.0 / 255.0, 161.0 / 255.0, 222.0 / 255.0, 1.0],
+        );
+
+        // 复选框颜色
+        let cheackmark = ui.push_style_color(StyleColor::CheckMark, [0.0, 0.0, 0.0, 1.0]);
+        let framebg = ui.push_style_color(
+            StyleColor::FrameBg,
+            [25.0 / 255.0, 158.0 / 255.0, 215.0 / 255.0, 200.0 / 255.0],
+        );
+        let framebgactive = ui.push_style_color(
+            StyleColor::FrameBgActive,
+            [25.0 / 255.0, 164.0 / 255.0, 215.0 / 255.0, 1.0],
+        );
+        let framebghover = ui.push_style_color(
+            StyleColor::FrameBgHovered,
+            [20.0 / 255.0, 212.0 / 255.0, 250.0 / 255.0, 1.0],
+        );
+
+        // 边框颜色
+        let border = ui.push_style_color(StyleColor::Border, [0.0, 0.0, 0.0, 1.0]);
         // 设置圆角
-        let wr= ui.push_style_var(StyleVar::WindowRounding(10.0));
-        let fr =ui.push_style_var(StyleVar::FrameRounding(5.0));
-        let sr =ui.push_style_var(StyleVar::ScrollbarRounding(5.0));
-        let gr =ui.push_style_var(StyleVar::GrabRounding(2.3));
+        let wr = ui.push_style_var(StyleVar::WindowRounding(15.0));
+        let fr = ui.push_style_var(StyleVar::FrameRounding(5.0));
+        let sr = ui.push_style_var(StyleVar::ScrollbarRounding(5.0));
+        let gr = ui.push_style_var(StyleVar::GrabRounding(2.3));
         let tr = ui.push_style_var(StyleVar::TabRounding(2.3));
-        let cr = ui.push_style_var(StyleVar::ChildRounding(5.0));
+        let cr = ui.push_style_var(StyleVar::ChildRounding(10.0));
         let wb = ui.push_style_var(StyleVar::WindowBorderSize((2.0)));
 
         let gm = ui.push_style_var(StyleVar::GrabMinSize(40.0));
         // 创建主窗口
-
         let mut window = Window::new(ui, "Mono").flags(WindowFlags::NO_TITLE_BAR);
         if state.should_restore_window {
             window = window
@@ -203,7 +180,7 @@ fn layout_tick_ui(ui: &Ui, state: &mut AppState) {
                             ui.content_region_avail()[1] * 0.16,
                         ])
                         .build(|| {
-                            ui.set_window_font_scale(1.7);
+                            ui.set_window_font_scale(1.4);
                             let project_name = "Mono";
                             let text_size = ui.calc_text_size(project_name);
                             let pos_x = (ui.content_region_avail()[0] - text_size[0]) * 0.5;
@@ -220,7 +197,7 @@ fn layout_tick_ui(ui: &Ui, state: &mut AppState) {
                     ui.child_window("LeftSide2")
                         .size(ui.content_region_avail())
                         .build(|| {
-                            let tab_names = ["PLAYER", "UPDATE", "ABOUT", "HIDE"];
+                            let tab_names = ["Player", "Update", "About", "Hide"];
                             let item_height = ui.current_font_size() * 1.3;
                             for (i, name) in tab_names.iter().enumerate() {
                                 let selected = match i {
@@ -233,7 +210,7 @@ fn layout_tick_ui(ui: &Ui, state: &mut AppState) {
                                 let clicked = ui
                                     .selectable_config(name)
                                     .selected(selected)
-                                    .size([ui.content_region_avail()[0], item_height])
+                                    .size([ui.content_region_avail()[0] * 0.85, item_height])
                                     .build();
 
                                 if clicked {
@@ -295,6 +272,7 @@ fn layout_tick_ui(ui: &Ui, state: &mut AppState) {
                     ui.spacing();
                 });
         });
+        // 恢复样式
         wr.pop();
         fr.pop();
         sr.pop();
@@ -303,7 +281,28 @@ fn layout_tick_ui(ui: &Ui, state: &mut AppState) {
         cr.pop();
         wb.pop();
         gm.pop();
+        windowbg.pop();
+        childbg.pop();
+        text.pop();
+        header.pop();
+        headerhover.pop();
+        headeractive.pop();
+        button.pop();
+        buttonhover.pop();
+        buttonactive.pop();
+        cheackmark.pop();
+        framebg.pop();
+        framebgactive.pop();
+        framebghover.pop();
+        border.pop();
     } else {
+        let wr = ui.push_style_var(StyleVar::WindowRounding(15.0));
+        let fr = ui.push_style_var(StyleVar::FrameRounding(5.0));
+        let sr = ui.push_style_var(StyleVar::ScrollbarRounding(5.0));
+        let gr = ui.push_style_var(StyleVar::GrabRounding(2.3));
+        let tr = ui.push_style_var(StyleVar::TabRounding(2.3));
+        let cr = ui.push_style_var(StyleVar::ChildRounding(5.0));
+        let wb = ui.push_style_var(StyleVar::WindowBorderSize((2.0)));
         // 隐藏菜单时显示的小按钮
         let window = Window::new(ui, "Mono")
             .size([60.0, 60.0], Condition::Always)
@@ -315,6 +314,13 @@ fn layout_tick_ui(ui: &Ui, state: &mut AppState) {
                 state.should_restore_window = true;
             }
         });
+        wr.pop();
+        fr.pop();
+        sr.pop();
+        gr.pop();
+        tr.pop();
+        cr.pop();
+        wb.pop();
     }
 }
 
@@ -323,27 +329,33 @@ fn layout_tick_ui(ui: &Ui, state: &mut AppState) {
 // ======================
 
 pub fn init_menu() -> Result<(), Box<dyn std::error::Error>> {
-    let mut state = AppState::new();
-    // 创建系统实例
-    let system = System::new("虚空遁地猪qwq")?;
-    // let imgui = system.imgui;
-    // 主循环
-    system.run((), move |run, ui| {
-        // 首次运行时设置样式
-        static mut STYLE_SET: bool = false;
-        unsafe {
-            if !STYLE_SET {
-                setup_colors(ui);
-                STYLE_SET = true;
+    let record = Rc::new(RefCell::new(false));
+    let should_exit = Rc::new(RefCell::new(false));
+    loop {
+        let mut state = AppState::new();
+        state.permeate_record = *record.borrow();
+        // 创建系统实例
+        let system = System::new("虚空遁地猪qwq", &*record.borrow())?;
+        let record_clone = record.clone();
+        let should_exit_clone = should_exit.clone();
+        // 主循环
+        system.run((), move |run, ui| {
+            // 绘制主UI
+            layout_tick_ui(ui, &mut state);
+            // 检查是否需要关闭UI
+            *record_clone.borrow_mut() = state.permeate_record;
+            if state.app_close {
+                *run = false;
+                *should_exit_clone.borrow_mut() = true;
             }
+            if state.permeate_record_ini {
+                *run = false;
+            }
+        })?;
+        if *should_exit.borrow() {
+            break;
         }
-        // 绘制主UI
-        layout_tick_ui(ui, &mut state);
-        // 检查是否需要关闭UI
-        if state.app_close {
-            *run = false;
-        }
-    })?;
+    }
 
     Ok(())
 }
